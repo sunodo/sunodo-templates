@@ -6,7 +6,7 @@
 # If any needed dependencies rely on native binaries, you must use 
 # a riscv64 image such as cartesi/node:19-jammy for the build stage,
 # to ensure that the appropriate binaries will be generated.
-FROM node:19-bullseye  as build-stage
+FROM node:20.2.0-bullseye  as build-stage
 
 WORKDIR /opt/cartesi/dapp
 COPY . .
