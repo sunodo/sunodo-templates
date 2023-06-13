@@ -4,87 +4,88 @@ import (
 	"encoding/json"
 	"io/ioutil"
   "strconv"
-    
-  log "github.com/sirupsen/logrus"
-	easy "github.com/t-tomalak/logrus-easy-formatter"
+  "fmt"
+  "log"
+  "os"
 
   "dapp/rollups"
 )
 
-func HandleAdvance(data *rollups.AdvanceResponse) string {
+var (
+  infolog  = log.New(os.Stderr, "[ info ]  ", log.Lshortfile)
+  errlog   = log.New(os.Stderr, "[ error ] ", log.Lshortfile)
+)
+
+func HandleAdvance(data *rollups.AdvanceResponse) error {
   dataMarshal, err := json.Marshal(data)
   if err != nil {
-    log.Error("error:", err)
-    return "reject"
+    return fmt.Errorf("HandleAdvance: failed marshaling json: %w", err)
   }
-  log.Info("Received advance request data" + string(dataMarshal))
-  return "accept"
+  infolog.Println("Received advance request data", string(dataMarshal))
+  return nil
 }
 
 
-func HandleInspect(data *rollups.InspectResponse) string {
+func HandleInspect(data *rollups.InspectResponse) error {
   dataMarshal, err := json.Marshal(data)
   if err != nil {
-    log.Error("error:", err)
-    return "reject"
+    return fmt.Errorf("HandleInspect: failed marshaling json: %w", err)
   }
-  log.Info("Received inspect request data" + string(dataMarshal))
-  return "accept"
+  infolog.Println("Received inspect request data", string(dataMarshal))
+  return nil
 }
 
+func Handler(response *rollups.FinishResponse) error {
+  var err error
+
+  switch response.Type {
+  case "advance_state":
+    data := new(rollups.AdvanceResponse)
+    if err = json.Unmarshal(response.Data, data); err != nil {
+      return fmt.Errorf("Handler: Error unmarshaling advance:", err)
+    }
+    err = HandleAdvance(data)
+  case "inspect_state":
+    data := new(rollups.InspectResponse)
+    if err = json.Unmarshal(response.Data, data); err != nil {
+      return fmt.Errorf("Handler: Error unmarshaling inspect:", err)
+    }
+    err = HandleInspect(data)
+  }
+  return err
+}
 
 func main() {
   finish := rollups.FinishRequest{"accept"}
-  log.SetFormatter(&easy.Formatter{
-    LogFormat:       "[%lvl%]: %msg%\n",
-  })
 
   for true {
-
-    log.Info("Sending finish")
+    infolog.Println("Sending finish")
     res, err := rollups.SendFinish(&finish)
     if err != nil {
-      log.Fatal("client: error making http request: ", err)
-      continue
+      errlog.Panicln("Error: error making http request: ", err)
     }
-    log.Info("Received finish status " + strconv.Itoa(res.StatusCode))
+    infolog.Println("Received finish status ", strconv.Itoa(res.StatusCode))
     
     if (res.StatusCode == 202){
-      log.Info("No pending rollup request, trying again")
+      infolog.Println("No pending rollup request, trying again")
     } else {
 
       resBody, err := ioutil.ReadAll(res.Body)
       if err != nil {
-        log.Fatal("client: could not read response body: ", err)
-        continue
+        errlog.Panicln("Error: could not read response body: ", err)
       }
       
       var response rollups.FinishResponse
       err = json.Unmarshal(resBody, &response)
       if err != nil {
-        log.Fatal("Error unmarshaling body:", err)
-        continue
+        errlog.Panicln("Error: unmarshaling body:", err)
       }
 
-      switch response.Type {
-      case "advance_state":
-        data := new(rollups.AdvanceResponse)
-
-        err = json.Unmarshal(response.Data, data)
-        if err != nil {
-          log.Fatal("Error unmarshaling advance:", err)
-          continue
-        }
-        finish.Status = HandleAdvance(data)
-      case "inspect_state":
-        data := new(rollups.InspectResponse)
-
-        err = json.Unmarshal(response.Data, data)
-        if err != nil {
-          log.Fatal("Error unmarshaling inspect:", err)
-          continue
-        }
-        finish.Status = HandleInspect(data)
+      finish.Status = "accept"
+      err = Handler(&response)
+      if err != nil {
+        errlog.Println(err)
+        finish.Status = "reject"
       }
     }
   }

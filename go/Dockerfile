@@ -1,6 +1,13 @@
 
 # syntax=docker.io/docker/dockerfile:1.4
-FROM cartesi/rootfs:0.17.0 as build-stage
+FROM ubuntu:22.04 as build-stage
+
+RUN apt update && \
+    apt install -y --no-install-recommends \
+    build-essential=12.9ubuntu3 \
+    gcc-riscv64-linux-gnu=4:11.2.0--1ubuntu1 \
+    g++-riscv64-linux-gnu=4:11.2.0--1ubuntu1 \
+    wget ca-certificates
 
 ARG GOVERSION=1.20.5.linux-amd64
 
@@ -11,7 +18,7 @@ RUN wget https://go.dev/dl/go${GOVERSION}.tar.gz && tar -C /usr/local -xzf go${G
 ENV GOOS=linux
 ENV GOARCH=riscv64
 ENV CGO_ENABLED=1
-ENV CC=riscv64-cartesi-linux-gnu-gcc
+ENV CC=riscv64-linux-gnu-gcc
 ENV PATH=/usr/local/go/bin:${PATH}
 
 COPY src .
