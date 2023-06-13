@@ -1,19 +1,21 @@
-
 # syntax=docker.io/docker/dockerfile:1.4
 FROM ubuntu:22.04 as build-stage
 
-RUN apt update && \
-    apt install -y --no-install-recommends \
+RUN <<EOF
+apt update
+apt install -y --no-install-recommends \
     build-essential=12.9ubuntu3 \
-    gcc-riscv64-linux-gnu=4:11.2.0--1ubuntu1 \
+    ca-certificates \
     g++-riscv64-linux-gnu=4:11.2.0--1ubuntu1 \
-    wget ca-certificates
+    wget
+EOF
 
-ARG GOVERSION=1.20.5.linux-amd64
+ARG GOVERSION=1.20.5
 
 WORKDIR /opt/build
 
-RUN wget https://go.dev/dl/go${GOVERSION}.tar.gz && tar -C /usr/local -xzf go${GOVERSION}.tar.gz
+RUN wget https://go.dev/dl/go${GOVERSION}.linux-$(dpkg --print-architecture).tar.gz && \
+    tar -C /usr/local -xzf go${GOVERSION}.linux-$(dpkg --print-architecture).tar.gz
 
 ENV GOOS=linux
 ENV GOARCH=riscv64
@@ -24,7 +26,6 @@ ENV PATH=/usr/local/go/bin:${PATH}
 COPY src .
 
 RUN make
-
 
 # runtime stage: produces final image that will be executed
 FROM --platform=linux/riscv64 riscv64/ubuntu:22.04
