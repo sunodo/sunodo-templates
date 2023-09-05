@@ -22,10 +22,11 @@ jobs:
         uses: tchupp/actions-detect-directory-changes@v1.0.1
         with:
           included-paths: "!./.github/**"
-          included-extentions: "!*.md, !.gitignore, **/Dockerfile"
+          included-extensions: "!*.md, !.gitignore, **/Dockerfile"
 
   build-template:
     needs: detect-directory-changes
+    if: ${{ needs.detect-directory-changes.outputs.changed != '' && toJson(fromjson(needs.detect-directory-changes.outputs.changed)) != '[]' }}
     name: sunodo build ${{ matrix.template }}
     strategy:
       matrix:
