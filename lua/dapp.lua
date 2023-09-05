@@ -6,6 +6,7 @@ local rollup_server = assert(os.getenv("ROLLUP_HTTP_SERVER_URL"), "missing ROLLU
 
 local function info(...)
     print(string.format(...))
+    print("hello")
 end
 
 local function http_post(url, body)
