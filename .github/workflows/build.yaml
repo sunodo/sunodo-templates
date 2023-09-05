@@ -22,7 +22,6 @@ jobs:
         uses: tchupp/actions-detect-directory-changes@v1.0.1
         with:
           included-paths: "!./.github/**"
-          included-extensions: "!*.md, !.gitignore, **/Dockerfile"
 
   build-template:
     needs: detect-directory-changes
