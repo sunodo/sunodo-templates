@@ -20,8 +20,6 @@ jobs:
       - name: Detect Directory Changes
         id: detect
         uses: tchupp/actions-detect-directory-changes@v1.0.1
-        with:
-          included-paths: "!./.github/**"
 
   build-template:
     needs: detect-directory-changes
