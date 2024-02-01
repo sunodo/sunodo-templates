@@ -22,9 +22,6 @@ EOF
 
 FROM base
 
-LABEL io.sunodo.sdk_version=0.2.0
-LABEL io.cartesi.rollups.ram_size=128Mi
-
 ARG MACHINE_EMULATOR_TOOLS_VERSION=0.12.0
 RUN <<EOF
 set -e
@@ -45,3 +42,6 @@ COPY . .
 
 ENTRYPOINT ["rollup-init"]
 CMD ["ruby", "main.rb"]
+
+LABEL io.sunodo.sdk_version=0.2.0
+LABEL io.cartesi.rollups.ram_size=128Mi

@@ -1,9 +1,6 @@
 # syntax=docker.io/docker/dockerfile:1
 FROM --platform=linux/riscv64 cartesi/python:3.10-slim-jammy
 
-LABEL io.sunodo.sdk_version=0.2.0
-LABEL io.cartesi.rollups.ram_size=128Mi
-
 ARG MACHINE_EMULATOR_TOOLS_VERSION=0.12.0
 RUN <<EOF
 set -e
@@ -31,3 +28,6 @@ ENV ROLLUP_HTTP_SERVER_URL="http://127.0.0.1:5004"
 
 ENTRYPOINT ["rollup-init"]
 CMD ["python3", "dapp.py"]
+
+LABEL io.sunodo.sdk_version=0.2.0
+LABEL io.cartesi.rollups.ram_size=128Mi

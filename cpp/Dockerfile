@@ -14,9 +14,6 @@ RUN make
 
 FROM --platform=linux/riscv64 riscv64/ubuntu:22.04
 
-LABEL io.sunodo.sdk_version=0.2.0
-LABEL io.cartesi.rollups.ram_size=128Mi
-
 ARG MACHINE_EMULATOR_TOOLS_VERSION=0.12.0
 RUN <<EOF
 set -e
@@ -37,3 +34,6 @@ ENV ROLLUP_HTTP_SERVER_URL="http://127.0.0.1:5004"
 
 ENTRYPOINT ["rollup-init"]
 CMD ["/opt/cartesi/dapp/dapp"]
+
+LABEL io.sunodo.sdk_version=0.2.0
+LABEL io.cartesi.rollups.ram_size=128Mi
