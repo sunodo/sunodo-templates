@@ -15,6 +15,7 @@ apt-get update
 apt-get install -y --no-install-recommends \
   busybox-static=1:1.30.1-7ubuntu3
 rm -rf /var/lib/apt/lists/*
+echo "changed something"
 EOF
 
 ENV PATH="/opt/cartesi/bin:${PATH}"

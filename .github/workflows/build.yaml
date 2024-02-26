@@ -8,23 +8,29 @@ permissions:
   contents: read
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 jobs:
-  build:
-    name: sunodo build
+  detect-directory-changes:
+    name: "Detect Directory Changes"
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.detect.outputs.changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect Directory Changes
+        id: detect
+        uses: tchupp/actions-detect-directory-changes@v1.0.1
+        with:
+          included-paths: "!./.github/**, ./**/Dockerfile"
+
+  build-template:
+    needs: detect-directory-changes
+    if: ${{ needs.detect-directory-changes.outputs.changed != '' && toJson(fromjson(needs.detect-directory-changes.outputs.changed)) != '[]' }}
+    name: sunodo build ${{ matrix.template }}
     strategy:
       matrix:
-        template:
-          [
-            cpp,
-            cpp-low-level,
-            go,
-            javascript,
-            lua,
-            python,
-            ruby,
-            rust,
-            typescript,
-          ]
+        template: ${{ fromJSON(needs.detect-directory-changes.outputs.changed) }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -43,6 +49,6 @@ jobs:
       - name: Check system requirements
         run: sunodo doctor
 
-      - name: Build
+      - name: Build from main
         run: sunodo build
         working-directory: ${{ matrix.template }}
