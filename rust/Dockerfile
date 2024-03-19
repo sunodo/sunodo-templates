@@ -1,10 +1,10 @@
 # syntax=docker.io/docker/dockerfile:1
-FROM ubuntu:22.04 as builder
+FROM ubuntu:22.04 as base
 
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=/usr/local/cargo/bin:$PATH \
-    RUST_VERSION=1.72.0
+    RUST_VERSION=1.76.0
 
 RUN <<EOF
 set -e
@@ -37,26 +37,41 @@ RUN set -eux; \
     rustc --version;
 
 RUN rustup target add riscv64gc-unknown-linux-gnu
-
+RUN cargo install cargo-chef
 WORKDIR /opt/cartesi/dapp
+
+###  the planner helps cache depdenency builds
+
+FROM base AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+### Builder cross-compiles the dapp for riscv64
+
+FROM base as builder
+COPY --from=planner /opt/cartesi/dapp/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
 RUN cargo build --release
 
-FROM --platform=linux/riscv64 riscv64/ubuntu:22.04
+### final image is the dapp itself
 
-ARG MACHINE_EMULATOR_TOOLS_VERSION=0.12.0
-ADD https://github.com/cartesi/machine-emulator-tools/releases/download/v${MACHINE_EMULATOR_TOOLS_VERSION}/machine-emulator-tools-v${MACHINE_EMULATOR_TOOLS_VERSION}.deb /
-RUN dpkg -i /machine-emulator-tools-v${MACHINE_EMULATOR_TOOLS_VERSION}.deb \
-    && rm /machine-emulator-tools-v${MACHINE_EMULATOR_TOOLS_VERSION}.deb
+FROM --platform=linux/riscv64 riscv64/ubuntu:22.04
 
 LABEL io.sunodo.sdk_version=0.2.0
 LABEL io.cartesi.rollups.ram_size=128Mi
+
+ARG MACHINE_EMULATOR_TOOLS_VERSION=0.12.0
 
 RUN <<EOF
 set -e
 apt-get update
 apt-get install -y --no-install-recommends \
-    busybox-static=1:1.30.1-7ubuntu3
+    busybox-static=1:1.30.1-7ubuntu3 \
+    ca-certificates=20230311ubuntu0.22.04.1 \
+    curl=7.81.0-1ubuntu1.15
+curl -fsSL https://github.com/cartesi/machine-emulator-tools/releases/download/v${MACHINE_EMULATOR_TOOLS_VERSION}/machine-emulator-tools-v${MACHINE_EMULATOR_TOOLS_VERSION}.tar.gz \
+  | tar -C / --overwrite -xvzf -
 rm -rf /var/lib/apt/lists/*
 EOF
 
