@@ -40,7 +40,7 @@ RUN rustup target add riscv64gc-unknown-linux-gnu
 RUN cargo install cargo-chef
 WORKDIR /opt/cartesi/dapp
 
-###  the planner helps cache depdenency builds
+###  the planner helps cache dependency builds
 
 FROM base AS planner
 COPY . .
