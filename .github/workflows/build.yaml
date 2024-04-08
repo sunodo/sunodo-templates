@@ -8,23 +8,30 @@ permissions:
   contents: read
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 jobs:
-  build:
-    name: sunodo build
+  changedfiles:
+    runs-on: ubuntu-latest
+    outputs:
+      changedTemplates: ${{ steps.changes.outputs.CHANGED_TEMPLATES }}
+      allTemplate: ${{ steps.changes.outputs.ALL_TEMPLATES }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Get template names
+        id: changes
+        run: |
+          echo "CHANGED_TEMPLATES=$(git diff --name-only --diff-filter=ACMRT ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | awk -F/ '/^[a-z]*\// {print $1}' | sort -u | jq -Rnc '[inputs]')" >> "$GITHUB_OUTPUT"
+          echo "ALL_TEMPLATES=$(find ./ -name Dockerfile | awk -F/ '/^[a-z]*\// {print $1}' | sort -u | jq -Rnc '[inputs]')" >> "$GITHUB_OUTPUT"
+
+  build-on-main:
+    needs: changedfiles
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && (needs.changedfiles.outputs.allTemplates != ''  && toJson(fromjson(needs.changedfiles.outputs.allTemplates)) != '[]') }}
+    name: sunodo build ${{ matrix.allTemplates }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        template:
-          [
-            cpp,
-            cpp-low-level,
-            go,
-            javascript,
-            lua,
-            python,
-            ruby,
-            rust,
-            typescript,
-          ]
+        allTemplates: ${{ fromJson(needs.changedfiles.outputs.allTemplates) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -43,6 +50,36 @@ jobs:
       - name: Check system requirements
         run: sunodo doctor
 
-      - name: Build
+      - name: Build from main
         run: sunodo build
-        working-directory: ${{ matrix.template }}
+        working-directory: ${{ matrix.allTemplates }}
+
+  build-on-pr:
+    needs: changedfiles
+    if: ${{ github.event_name == 'pull_request' && (needs.changedfiles.outputs.changedTemplates != '' && toJson(fromjson(needs.changedfiles.outputs.changedTemplates)) != '[]') }}
+    name: sunodo build ${{ matrix.changedTemplates }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        changedTemplates: ${{ fromJson(needs.changedfiles.outputs.changedTemplates) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: current
+
+      - name: Install Sunodo
+        run: npm install -g @sunodo/cli
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Check system requirements
+        run: sunodo doctor
+
+      - name: Build from PR
+        run: sunodo build
+        working-directory: ${{ matrix.changedTemplates }}
