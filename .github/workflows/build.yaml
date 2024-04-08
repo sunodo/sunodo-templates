@@ -52,12 +52,12 @@ jobs:
 
       - name: Build from main
         run: sunodo build
-        working-directory: ${{ matrix.ALL_TEMPLATES }}
+        working-directory: ${{ matrix.allTemplates }}
 
   build-on-pr:
     needs: changedfiles
     if: ${{ github.event_name == 'pull_request' && (needs.changedfiles.outputs.changedTemplates != '' && toJson(fromjson(needs.changedfiles.outputs.changedTemplates)) != '[]') }}
-    name: sunodo build ${{ matrix.changedTempl && needs.changedfiles.outputs.allTemplatesates }}
+    name: sunodo build ${{ matrix.changedTemplates }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
