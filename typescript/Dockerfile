@@ -19,7 +19,7 @@ RUN yarn install && yarn build
 # performance when loading the Cartesi Machine.
 FROM --platform=linux/riscv64 cartesi/node:20.8.0-jammy-slim
 
-ARG MACHINE_EMULATOR_TOOLS_VERSION=0.14.1
+ARG MACHINE_EMULATOR_TOOLS_VERSION=0.15.0
 ADD https://github.com/cartesi/machine-emulator-tools/releases/download/v${MACHINE_EMULATOR_TOOLS_VERSION}/machine-emulator-tools-v${MACHINE_EMULATOR_TOOLS_VERSION}.deb /
 RUN dpkg -i /machine-emulator-tools-v${MACHINE_EMULATOR_TOOLS_VERSION}.deb \
   && rm /machine-emulator-tools-v${MACHINE_EMULATOR_TOOLS_VERSION}.deb
